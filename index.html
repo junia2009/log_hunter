@@ -711,28 +711,41 @@
   </div>
 
 <script>
+  // Mapの値をインクリメントするユーティリティ関数
+  function bump(map, key) {
+    map.set(key, (map.get(key) || 0) + 1);
+  }
   // ===== Elements =====
-  const inputEl = document.getElementById('input');
-  const outputEl = document.getElementById('output');
-  const errorEl = document.getElementById('error');
-  const fileDropEl = document.getElementById('fileDrop');
-  const fileInputEl = document.getElementById('fileInput');
-  const clockEl = document.getElementById('clock');
-  const inputLenEl = document.getElementById('inputLen');
-  const outputLenEl = document.getElementById('outputLen');
-  const processTimeEl = document.getElementById('processTime');
-  const overlay = document.getElementById('processingOverlay');
-  const statusPill = document.getElementById('statusPill');
-  const summaryEl = document.getElementById('summary');
+  function getOrError(id) {
+    const el = document.getElementById(id);
+    if (!el) {
+      alert(`要素取得失敗: id="${id}" が見つかりません。`);
+      throw new Error(`要素取得失敗: id="${id}" が見つかりません。`);
+    }
+    return el;
+  }
 
-  const artifactsEl = document.getElementById('artifacts');
-  const artifactButtonsEl = document.getElementById('artifactButtons');
-  const artifactHintEl = document.getElementById('artifactHint');
+  const inputEl = getOrError('input');
+  const outputEl = getOrError('output');
+  const errorEl = getOrError('error');
+  const fileDropEl = getOrError('fileDrop');
+  const fileInputEl = getOrError('fileInput');
+  const clockEl = getOrError('clock');
+  const inputLenEl = getOrError('inputLen');
+  const outputLenEl = getOrError('outputLen');
+  const processTimeEl = getOrError('processTime');
+  const overlay = getOrError('processingOverlay');
+  const statusPill = getOrError('statusPill');
+  const summaryEl = getOrError('summary');
 
-  const regexEl = document.getElementById('regex');
-  const huntModeEl = document.getElementById('huntMode');
-  const thresholdEl = document.getElementById('threshold');
-  const topNEl = document.getElementById('topN');
+  const artifactsEl = getOrError('artifacts');
+  const artifactButtonsEl = getOrError('artifactButtons');
+  const artifactHintEl = getOrError('artifactHint');
+
+  const regexEl = getOrError('regex');
+  const huntModeEl = getOrError('huntMode');
+  const thresholdEl = getOrError('threshold');
+  const topNEl = getOrError('topN');
 
   // ===== Clock =====
   function updateClock() {
@@ -1413,6 +1426,7 @@
     out += "  解析終了\n";
     out += "==============================\n";
 
+    console.log('[DEBUG] hunt出力', out);
     outputEl.value = out;
     updateCounters();
     processTimeEl.textContent = `処理時間: ${(performance.now()-t0).toFixed(1)}ms`;
