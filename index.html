@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CTF ログハンター</title>
+  <title>CTF ログハンター（拡張検知）</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
-
     :root {
       --cyan: #00d4ff;
       --cyan-dim: rgba(0, 212, 255, 0.3);
@@ -21,9 +20,7 @@
       --good: #00ff88;
       --bad: #ff4444;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     body {
       font-family: 'Share Tech Mono', monospace;
       background: var(--bg-dark);
@@ -35,14 +32,11 @@
       overflow-x: hidden;
       position: relative;
     }
-
-    /* === CUSTOM SCROLLBAR === */
     body::-webkit-scrollbar { width: 6px; }
     body::-webkit-scrollbar-track { background: rgba(0, 10, 20, 0.8); }
     body::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 3px; }
     body::-webkit-scrollbar-thumb:hover { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
 
-    /* === BACKGROUND GRID === */
     body::before {
       content: '';
       position: fixed;
@@ -55,7 +49,6 @@
     }
     @keyframes gridShift { 0% { transform: translate(0, 0); } 100% { transform: translate(40px, 40px); } }
 
-    /* === SCAN LINE === */
     body::after {
       content: '';
       position: fixed;
@@ -71,7 +64,6 @@
     }
     @keyframes scanLine { 0% { top: -5%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 105%; opacity: 0; } }
 
-    /* === FLOATING PARTICLES === */
     .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
     .particle {
       position: absolute;
@@ -89,10 +81,8 @@
       100% { transform: translateY(-10vh) scale(1); opacity: 0; }
     }
 
-    /* === CONTAINER === */
     .container { position: relative; width: 100%; max-width: 920px; margin: auto; padding: 20px; z-index: 10; }
 
-    /* === HUD FRAME === */
     .hud-frame {
       position: relative;
       background: var(--panel-bg);
@@ -119,7 +109,6 @@
     .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
     .corner-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
 
-    /* === HUD TOP DECO === */
     .hud-deco-top {
       position: absolute;
       top: 8px; left: 28px; right: 28px;
@@ -131,7 +120,6 @@
       gap: 10px;
     }
 
-    /* === PROCESSING OVERLAY === */
     .processing-overlay {
       position: absolute; inset: 0;
       background: rgba(0, 10, 20, 0.85);
@@ -160,7 +148,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* === HEADER === */
     .header { text-align: center; margin-bottom: 14px; position: relative; }
     .header-line { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
     .header-line .deco { width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--cyan)); }
@@ -210,7 +197,6 @@
       margin-top: 4px;
     }
 
-    /* === STATUS BAR === */
     .status-bar {
       display: flex;
       justify-content: space-between;
@@ -235,7 +221,6 @@
     }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     .status-bar .time { color: var(--orange-dim); }
-
     .pill {
       padding: 3px 8px;
       border: 1px solid rgba(0,212,255,.15);
@@ -245,7 +230,6 @@
       white-space: nowrap;
     }
 
-    /* === HELP PANEL === */
     .help {
       border: 1px solid rgba(0, 212, 255, 0.12);
       background: rgba(0, 10, 20, 0.45);
@@ -283,7 +267,6 @@
       margin: 0 2px;
     }
 
-    /* === FILE DROP === */
     .file-drop {
       border: 1px dashed var(--cyan-dim);
       border-radius: 2px;
@@ -310,7 +293,6 @@
     .file-drop:hover, .file-drop.dragover { border-color: var(--cyan); color: var(--cyan); }
     .file-drop input { display: none; }
 
-    /* === LABELS === */
     label {
       display: flex; align-items: center; gap: 8px;
       color: var(--cyan);
@@ -323,7 +305,6 @@
     }
     label .bracket { color: var(--orange-dim); font-size: 0.85rem; }
 
-    /* === TEXTAREA === */
     textarea {
       width: 100%;
       height: 130px;
@@ -356,7 +337,6 @@
       flex-wrap: wrap;
     }
 
-    /* === CONTROLS === */
     .controls {
       margin: 12px 0 10px;
       display: grid;
@@ -394,7 +374,6 @@
     .ctrl input:focus, .ctrl select:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 212, 255, 0.08); }
     .hint { color: rgba(0, 212, 255, 0.25); font-size: 0.65rem; margin-top: 6px; letter-spacing: 1px; }
 
-    /* === SWAP === */
     .swap-row {
       display: flex;
       justify-content: center;
@@ -428,7 +407,6 @@
       transform: rotate(180deg);
     }
 
-    /* === OUTPUT COPY === */
     .output-wrapper { position: relative; }
     .btn-copy {
       position: absolute;
@@ -449,7 +427,6 @@
     .btn-copy:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px var(--cyan-dim); }
     .btn-copy.copied { border-color: var(--good); color: var(--good); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
 
-    /* === BUTTONS === */
     .btn-group { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
     .btn {
       flex: 1;
@@ -479,17 +456,13 @@
 
     .btn-hunt { border-color: var(--cyan-dim); color: var(--cyan); }
     .btn-hunt:hover { border-color: var(--cyan); box-shadow: 0 0 20px var(--cyan-dim), inset 0 0 20px rgba(0, 212, 255, 0.05); text-shadow: 0 0 10px var(--cyan); }
-
     .btn-extract { border-color: var(--orange-dim); color: var(--orange); }
     .btn-extract:hover { border-color: var(--orange); box-shadow: 0 0 20px var(--orange-dim), inset 0 0 20px rgba(255, 106, 0, 0.05); text-shadow: 0 0 10px var(--orange); }
-
     .btn-export { border-color: rgba(30, 144, 255, 0.25); color: rgba(30, 144, 255, 0.9); }
     .btn-export:hover { border-color: rgba(30, 144, 255, 0.7); box-shadow: 0 0 20px rgba(30, 144, 255, 0.25); }
-
     .btn-clear { flex: 0.6; border-color: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.3); min-width: 120px; }
     .btn-clear:hover { border-color: rgba(255, 255, 255, 0.3); color: rgba(255, 255, 255, 0.6); }
 
-    /* === ERROR === */
     .error {
       background: rgba(255, 50, 50, 0.05);
       border: 1px solid rgba(255, 50, 50, 0.2);
@@ -508,7 +481,6 @@
       font-size: 0.7rem;
     }
 
-    /* === SUMMARY === */
     .summary {
       margin-top: 12px;
       border: 1px solid rgba(0, 212, 255, 0.1);
@@ -530,7 +502,6 @@
     .k { color: rgba(0, 212, 255, 0.22); }
     .v { color: rgba(0, 212, 255, 0.55); text-align: right; }
 
-    /* === ARTIFACTS === */
     .artifacts {
       margin-top: 10px;
       display: none;
@@ -567,7 +538,6 @@
       box-shadow:0 0 10px rgba(0,212,255,.12);
     }
 
-    /* === BOTTOM DECO === */
     .hud-deco-bottom {
       display: flex;
       justify-content: center;
@@ -598,7 +568,7 @@
       <div class="hud-deco-top">
         <span>SYS.OK</span>
         <span>CTF Log Hunter</span>
-        <span>v1.1.0 (JP)</span>
+        <span>v1.2.0 (Enhanced)</span>
       </div>
 
       <div class="processing-overlay" id="processingOverlay">
@@ -612,7 +582,7 @@
           <span class="deco"></span>
         </div>
         <h1>CTF LOG HUNTER</h1>
-        <div class="subtitle">使い方が分かる 日本語UI</div>
+        <div class="subtitle">URL/Base64/HEX/JWT/Hash も検知</div>
       </div>
 
       <div class="status-bar">
@@ -621,19 +591,18 @@
         <span class="time" id="clock">00:00:00</span>
       </div>
 
-      <!-- 使い方（折りたたみ） -->
-      <details class="help" open>
+      <details class="help">
         <summary>
           <span>使い方（CTF向け：3ステップ）</span>
           <span style="color:rgba(255,106,0,.45)">CLICK</span>
         </summary>
         <div class="help-body">
           <div>1) ログを貼り付ける or ファイルをドロップ</div>
-          <div>2) <b>「Hunt（自動抽出）」</b> を押す（<span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> でもOK）</div>
-          <div>3) 出力の <b>「フラグ候補」</b> → <b>「重要（スコア順）」</b> の順に見ればOK</div>
+          <div>2) <b>「Hunt（自動抽出）」</b> を押す（<span class="kbd">Ctrl</span>+<span class="kbd">Enter</span>）</div>
+          <div>3) 出力の <b>「フラグ候補」</b> → <b>「重要ログ（スコア順）」</b> を見る</div>
           <br>
-          <div>・Webアクセスログ / syslog(auth.log) / アプリログが混在していても解析します。</div>
-          <div>・分からなければ、設定は触らず <b>そのままHunt</b> が一番早いです。</div>
+          <div>この版は <b>URLデコード</b> / <b>Base64デコード</b> / <b>HEXデコード</b> / <b>JWT分解</b> を行い、</div>
+          <div>デコード後の文字列にも <b>SQLi/XSS/Traversal</b> 検知を再適用します。</div>
         </div>
       </details>
 
@@ -678,9 +647,9 @@
             <span style="color:rgba(0,212,255,.35)">スコア閾値</span>
           </div>
           <select id="threshold">
-            <option value="10">LOW（かなり怪しいものだけ）</option>
-            <option value="7" selected>MED（おすすめ）</option>
-            <option value="5">HIGH（広く拾う）</option>
+            <option value="12">LOW（かなり怪しいものだけ）</option>
+            <option value="8" selected>MED（おすすめ）</option>
+            <option value="6">HIGH（広く拾う）</option>
           </select>
           <div class="hint">HIGHは拾いすぎる場合あり（まずはMED）</div>
         </div>
@@ -811,21 +780,11 @@
   }
 
   // ===== Helpers =====
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = 'block';
-    setStatus("エラー", "bad");
-  }
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = 'block'; setStatus("エラー", "bad"); }
   function hideError() { errorEl.style.display = 'none'; }
+  function updateCounters(){ inputLenEl.textContent = inputEl.value.length + ' 文字'; outputLenEl.textContent = outputEl.value.length + ' 文字'; }
 
-  function updateCounters(){
-    inputLenEl.textContent = inputEl.value.length + ' 文字';
-    outputLenEl.textContent = outputEl.value.length + ' 文字';
-  }
-
-  function splitLines(text){
-    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-  }
+  function splitLines(text){ return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n'); }
 
   function safeRegExp(pattern){
     if (!pattern) return null;
@@ -842,54 +801,24 @@
     return (s.match(/\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\b/g) || []);
   }
 
-  function extractFlagCandidates(s){
-    const hits = [];
-    const re = /(flag\{[^}]{3,}\}|ctf\{[^}]{3,}\}|FLAG\[[^\]]{3,}\]|FLAGPART:\s*.+)/gi;
-    let m;
-    while ((m = re.exec(s)) !== null) hits.push(m[0]);
-    return hits;
-  }
-
-  function looksLikeBase64(tok){
-    return tok.length >= 40 && tok.length % 4 === 0 && /^[A-Za-z0-9+/=]+$/.test(tok);
-  }
-
-  function tryBase64Decode(b64){
-    try{
-      const bin = atob(b64);
-      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-      return new TextDecoder("utf-8", {fatal:false}).decode(bytes);
-    }catch(e){ return null; }
-  }
-
-  function b64ToBytes(b64){
-    const bin = atob(b64);
-    return Uint8Array.from(bin, c=>c.charCodeAt(0));
-  }
-
-  function bump(map, key, n=1){ map.set(key, (map.get(key)||0)+n); }
-
-  // ===== Mixed record grouping =====
+  // ===== Mixed record grouping (from your base UI) =====
   function isAnyRecordStart(line){
     if (!line || !line.trim()) return false;
-    if (/<\d{1,3}>\d+\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(line)) return true; // syslog5424
-    if (/(?:<\d{1,3}>)?\s*[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+/.test(line)) return true; // syslog3164
-    if (/\[\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2}\s+[+\-]\d{4}\]\s+"/.test(line)) return true; // nginx combined
-    if (/^\s*\d{4}[-\/]\d{2}[-\/]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(line)) return true; // app
+    if (/<\d{1,3}>\d+\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(line)) return true;
+    if (/(?:<\d{1,3}>)?\s*[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+/.test(line)) return true;
+    if (/\[\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2}\s+[+\-]\d{4}\]\s+"/.test(line)) return true;
+    if (/^\s*\d{4}[-\/]\d{2}[-\/]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(line)) return true;
     return false;
   }
-
   function detectRecordType(head){
     if (/<\d{1,3}>\d+\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(head)) return "syslog5424";
     if (/(?:<\d{1,3}>)?\s*[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+/.test(head)) return "syslog3164";
     if (/\[\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2}\s+[+\-]\d{4}\]\s+"/.test(head)) return "nginx";
     return "app";
   }
-
   function groupMixedRecords(lines){
     const records = [];
     let cur = null;
-
     const continuation = (l) =>
       /^\s+at\s+/.test(l) || /^\s+\.{3}\s+\d+\s+more/.test(l) || /^\s*Caused by:/.test(l) || /^\s*\.\.\./.test(l);
 
@@ -908,28 +837,170 @@
     return records;
   }
 
-  // ===== Parse web request (nginx combined-ish) =====
+  // ===== nginx parse =====
   function parseNginx(head){
     const m = head.match(/"(\w+)\s+([^"]+?)\s+HTTP\/[0-9.]+"\s+(\d{3})\s+/);
     if (!m) return null;
     return { method: m[1], path: m[2], status: parseInt(m[3],10) };
   }
 
-  // ===== Suspicious rules (detection-only) =====
-  function buildRules(){
-    return [
-      { id:"認証失敗", score:8,  re:/Failed password|authentication failure|invalid user/i, reason:"認証失敗（総当たりの可能性）" },
-      { id:"権限操作", score:10, re:/Accepted .* for root\b|session opened for user root\b|sudo:.*USER=root/i, reason:"root/sudo（権限昇格の可能性）" },
-      { id:"スキャナ", score:7,  re:/\b(nikto|gobuster|dirbuster|sqlmap|nmap|masscan|ffuf|dirb)\b/i, reason:"スキャナ/ツール痕跡" },
-      { id:"HTTP401", score:5,  re:/\s401\s/, reason:"401（ログイン失敗が多い場合は要注意）" },
-      { id:"HTTP403", score:4,  re:/\s403\s/, reason:"403（ブロック/探索の可能性）" },
-      { id:"SQLi", score:9, re:/\bUNION\b\s+\bSELECT\b|(\bor\b\s+1=1\b)|information_schema|sleep\(|waitfor\s+delay/i, reason:"SQLインジェクションっぽい" },
-      { id:"XSS", score:7, re:/<script|%3cscript|onerror=|onload=|javascript:/i, reason:"XSSっぽい" },
-      { id:"トラバーサル", score:9, re:/(\.\.\/)|(\.\.%2f)|(%2e%2e%2f)|(%2e%2e\/)|(\.\.%5c)|(%2e%2e%5c)|(%252e%252e%255c)/i, reason:"パストラバーサルっぽい" },
-      { id:"重要ファイル", score:8, re:/\/etc\/passwd|\/etc\/shadow|\/proc\/self\/environ|\/proc\/self\/cmdline|\.env\b|wp-config\.php|\/\.git\b/i, reason:"重要ファイル参照っぽい" },
-      { id:"コマンド実行", score:10, re:/\b(cmd=|exec=|system=|passthru=|shell_exec=)\b/i, reason:"コマンド実行パラメータっぽい" },
-      { id:"フラグ", score:8, re:/flag\{|ctf\{|FLAG\[|FLAGPART:/i, reason:"フラグ/断片の可能性" },
-    ];
+  // ===== Flag candidates =====
+  function extractFlagCandidates(s){
+    const hits = [];
+    const re = /(flag\{[^}]{3,}\}|ctf\{[^}]{3,}\}|FLAG\[[^\]]{3,}\]|FLAGPART:\s*.+)/gi;
+    let m;
+    while ((m = re.exec(s)) !== null) hits.push(m[0]);
+    return hits;
+  }
+
+  // ===== URL decode (multi-pass) =====
+  function tryUrlDecodeOnce(s){
+    try{
+      const decoded = decodeURIComponent(s.replace(/\+/g, '%20'));
+      return decoded !== s ? decoded : null;
+    }catch(_){ return null; }
+  }
+  function decodeUrlMulti(s, maxPass=2){
+    let cur = s;
+    let changed = false;
+    for (let i=0; i<maxPass; i++){
+      const d = tryUrlDecodeOnce(cur);
+      if (!d) break;
+      cur = d;
+      changed = true;
+    }
+    return changed ? cur : null;
+  }
+
+  // ===== Base64 helpers (supports data URI) =====
+  function stripDataUriPrefix(s){
+    // data:image/png;base64,XXXX
+    const m = s.match(/^data:[^;]+;base64,(.+)$/i);
+    if (m) return m[1];
+    // url("data:...;base64,XXXX")
+    const m2 = s.match(/^url\(["']?data:[^;]+;base64,(.+?)["']?\)$/i);
+    if (m2) return m2[1];
+    return s;
+  }
+  function looksLikeBase64(tok){
+    if (!tok) return false;
+    const t = stripDataUriPrefix(tok);
+    return t.length >= 32 && /^[A-Za-z0-9+/=]+$/.test(t) && (t.length % 4 === 0);
+  }
+  function base64ToBytes(b64){
+    const t = stripDataUriPrefix(b64);
+    const bin = atob(t);
+    return Uint8Array.from(bin, c=>c.charCodeAt(0));
+  }
+  function tryBase64DecodeText(b64){
+    try{
+      const bytes = base64ToBytes(b64);
+      return new TextDecoder("utf-8", {fatal:false}).decode(bytes);
+    }catch(_){ return null; }
+  }
+
+  // ===== Base64URL (for JWT) =====
+  function base64UrlToBytes(b64url){
+    try{
+      let s = b64url.replace(/-/g,'+').replace(/_/g,'/');
+      while (s.length % 4 !== 0) s += '=';
+      const bin = atob(s);
+      return Uint8Array.from(bin, c=>c.charCodeAt(0));
+    }catch(_){ return null; }
+  }
+  function base64UrlToText(b64url){
+    const bytes = base64UrlToBytes(b64url);
+    if (!bytes) return null;
+    return new TextDecoder("utf-8", {fatal:false}).decode(bytes);
+  }
+
+  // ===== HEX decode =====
+  function looksLikeHex(s){
+    if (!s) return false;
+    const t = s.replace(/^0x/i,'');
+    return t.length >= 16 && t.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(t);
+  }
+  function hexToBytes(hex){
+    const t = hex.replace(/^0x/i,'');
+    const out = new Uint8Array(t.length/2);
+    for (let i=0; i<t.length; i+=2){
+      out[i/2] = parseInt(t.slice(i,i+2), 16);
+    }
+    return out;
+  }
+  function tryHexToText(hex){
+    try{
+      const bytes = hexToBytes(hex);
+      return new TextDecoder("utf-8", {fatal:false}).decode(bytes);
+    }catch(_){ return null; }
+  }
+
+  // ===== Hash / token detect =====
+  function detectCryptoKind(tok){
+    if (!tok) return null;
+    const s = tok.trim();
+
+    // JWT: header.payload.signature (3 parts) [4](https://auth0.com/docs/ja-jp/secure/tokens/json-web-tokens/json-web-token-structure)
+    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(s)) return "JWT";
+
+    // bcrypt prefixes like $2a$ / $2b$ / $2y$ ... [3](https://qiita.com/takaya1992/items/48fdfca2ede81a3d831d)
+    if (/^\$2[aby]\$\d{2}\$[./0-9A-Za-z]{53}$/.test(s)) return "bcrypt";
+
+    // hex hashes
+    if (/^[a-f0-9]{32}$/i.test(s)) return "MD5";
+    if (/^[a-f0-9]{40}$/i.test(s)) return "SHA1";
+    if (/^[a-f0-9]{64}$/i.test(s)) return "SHA256";
+    if (/^[a-f0-9]{128}$/i.test(s)) return "SHA512";
+
+    // generic HEX (payload / binary)
+    if (looksLikeHex(s)) return "HEX";
+
+    // generic base64
+    if (looksLikeBase64(s)) return "Base64";
+
+    return null;
+  }
+
+  // ===== Binary signature -> artifact type =====
+  function sniffFile(bytes){
+    if (!bytes || bytes.length < 8) return null;
+
+    // PNG magic: 89 50 4E 47 0D 0A 1A 0A; base64 begins with iVBORw0KGgo... [1](https://my-open-log.com/posts/picoctf-flag-in-flame)
+    const png = [0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A];
+    if (png.every((b,i)=>bytes[i]===b)) return {ext:"png", mime:"image/png", nameHint:"image"};
+
+    // ZIP: PK..
+    if (bytes[0]===0x50 && bytes[1]===0x4B && (bytes[2]===0x03||bytes[2]===0x05||bytes[2]===0x07) && (bytes[3]===0x04||bytes[3]===0x06||bytes[3]===0x08))
+      return {ext:"zip", mime:"application/zip", nameHint:"archive"};
+
+    // PDF: %PDF
+    if (bytes[0]===0x25 && bytes[1]===0x50 && bytes[2]===0x44 && bytes[3]===0x46)
+      return {ext:"pdf", mime:"application/pdf", nameHint:"doc"};
+
+    // GZIP: 1F 8B
+    if (bytes[0]===0x1F && bytes[1]===0x8B)
+      return {ext:"gz", mime:"application/gzip", nameHint:"gzip"};
+
+    // ELF: 7F 45 4C 46
+    if (bytes[0]===0x7F && bytes[1]===0x45 && bytes[2]===0x4C && bytes[3]===0x46)
+      return {ext:"elf", mime:"application/octet-stream", nameHint:"elf"};
+
+    // PE: MZ
+    if (bytes[0]===0x4D && bytes[1]===0x5A)
+      return {ext:"exe", mime:"application/octet-stream", nameHint:"pe"};
+
+    // Java class: CAFEBABE
+    if (bytes[0]===0xCA && bytes[1]===0xFE && bytes[2]===0xBA && bytes[3]===0xBE)
+      return {ext:"class", mime:"application/octet-stream", nameHint:"java"};
+
+    // SQLite
+    const sig = "SQLite format 3\0";
+    const sigBytes = new TextEncoder().encode(sig);
+    let ok = true;
+    for (let i=0;i<sigBytes.length;i++) if (bytes[i]!==sigBytes[i]) { ok=false; break; }
+    if (ok) return {ext:"sqlite", mime:"application/octet-stream", nameHint:"db"};
+
+    return null;
   }
 
   // ===== Artifacts =====
@@ -966,7 +1037,49 @@
     });
   }
 
-  // ===== HUNT (main) =====
+  // ===== Rules (expanded SQLi + encoding + crypto) =====
+  function buildRules(){
+    return [
+      // Auth
+      { id:"認証失敗", score:8,  re:/Failed password|authentication failure|invalid user/i, reason:"認証失敗（総当たりの可能性）" },
+      { id:"権限操作", score:10, re:/Accepted .* for root\b|session opened for user root\b|sudo:.*USER=root/i, reason:"root/sudo（権限昇格の可能性）" },
+
+      // scanners
+      { id:"スキャナ", score:7,  re:/\b(nikto|gobuster|dirbuster|sqlmap|nmap|masscan|ffuf|dirb)\b/i, reason:"スキャナ/ツール痕跡" },
+
+      // HTTP signals
+      { id:"HTTP401", score:5,  re:/\s401\s/, reason:"401（ログイン失敗が多い場合は要注意）" },
+      { id:"HTTP403", score:4,  re:/\s403\s/, reason:"403（ブロック/探索の可能性）" },
+
+      // SQLi (expanded)
+      { id:"SQLi_UNION", score:9, re:/\bUNION\b\s+\bSELECT\b/i, reason:"SQLi（UNION SELECT）" },
+      { id:"SQLi_BOOLEAN", score:8, re:/(\bor\b|\band\b)\s+1=1\b|'\s*or\s*'1'='1/i, reason:"SQLi（真偽条件）" },
+      { id:"SQLi_SCHEMA", score:7, re:/information_schema|pg_catalog|sqlite_master/i, reason:"SQLi（メタデータ参照）" },
+      { id:"SQLi_TIME", score:8, re:/sleep\(\s*\d+\s*\)|benchmark\(|waitfor\s+delay/i, reason:"SQLi（時間/遅延）" },
+      { id:"SQLi_STACK", score:7, re:/;\s*(select|insert|update|delete|drop|alter|create)\b/i, reason:"SQLi（スタック/複文）" },
+      { id:"SQLi_COMMENT", score:6, re:/--\s|#|\/\*|\*\//, reason:"SQLi（コメント/終端）" },
+      { id:"SQLi_FUNC", score:7, re:/concat\(|group_concat\(|load_file\(|outfile|xp_cmdshell/i, reason:"SQLi（危険関数）" },
+
+      // XSS
+      { id:"XSS", score:7, re:/<script|%3cscript|onerror=|onload=|javascript:/i, reason:"XSSっぽい" },
+
+      // traversal
+      { id:"トラバーサル", score:9, re:/(\.\.\/)|(\.\.%2f)|(%2e%2e%2f)|(%2e%2e\/)|(\.\.%5c)|(%2e%2e%5c)|(%252e%252e%255c)/i, reason:"パストラバーサルっぽい" },
+      { id:"重要ファイル", score:8, re:/\/etc\/passwd|\/etc\/shadow|\/proc\/self\/environ|\/proc\/self\/cmdline|\.env\b|wp-config\.php|\/\.git\b/i, reason:"重要ファイル参照っぽい" },
+
+      // cmd exec
+      { id:"コマンド実行", score:10, re:/\b(cmd=|exec=|system=|passthru=|shell_exec=|powershell|\/bin\/bash|cmd\.exe)\b/i, reason:"コマンド実行っぽい" },
+
+      // flags
+      { id:"フラグ", score:8, re:/flag\{|ctf\{|FLAG\[|FLAGPART:/i, reason:"フラグ/断片の可能性" },
+
+      // encoded markers
+      { id:"URLエンコード", score:3, re:/%[0-9A-Fa-f]{2}/, reason:"URLエンコードを含む" },
+      { id:"二重エンコード", score:4, re:/%25[0-9A-Fa-f]{2}/, reason:"二重エンコードっぽい（%25..）" },
+    ];
+  }
+
+  // ===== Hunt =====
   async function hunt(){
     hideError();
     summaryEl.style.display = "none";
@@ -993,21 +1106,24 @@
     setStatus("解析中...", "warn");
     await showProcessing();
 
-    const lines = splitLines(raw);
-    const records = groupMixedRecords(lines);
+    const records = groupMixedRecords(splitLines(raw));
     const rules = buildRules();
 
-    // Counters for anomaly boosts
+    // stats
     const ipTotal = new Map();
     const ip401 = new Map();
     const ipAuthFail = new Map();
-    const ipPaths = new Map(); // ip -> Set(paths)
+    const ipPaths = new Map();
     const pathCount = new Map();
 
     const flagParts = [];
     const flagSet = new Set();
 
-    // Pass 1: counters
+    // extra findings
+    const cryptoFindings = new Map(); // kind -> count
+    const decodedHitNotes = []; // human notes
+
+    // pass 1
     for (const rec of records){
       const head = (rec.split("\n")[0] || "");
       const ips = extractIPs(rec);
@@ -1032,9 +1148,17 @@
           flagSet.add(hit);
         }
       }
+
+      // crypto token detection (lightweight)
+      for (const tok of rec.split(/\s+/).slice(0, 400)){
+        const kind = detectCryptoKind(tok);
+        if (kind){
+          cryptoFindings.set(kind, (cryptoFindings.get(kind)||0)+1);
+        }
+      }
     }
 
-    // reconstruct FLAGPART (unique first appearance order)
+    // reconstruct FLAGPART
     const seenParts = new Set();
     const orderedParts = [];
     for (const p of flagParts){
@@ -1046,7 +1170,21 @@
     }
     const reconstructed = orderedParts.join("");
 
-    // Pass 2: score each record
+    // helper: apply rules to a decoded string and add partial score
+    function applyRulesOnDecoded(decoded, label, reasons){
+      let add = 0;
+      for (const r of rules){
+        if (r.re.test(decoded)){
+          // smaller weight to avoid over-scoring duplicates
+          const w = Math.max(2, Math.floor(r.score * 0.7));
+          add += w;
+          reasons.push(`${label}:${r.id}(+${w})`);
+        }
+      }
+      return add;
+    }
+
+    // pass 2 scoring
     const suspicious = [];
     for (let idx=0; idx<records.length; idx++){
       const rec = records[idx];
@@ -1056,18 +1194,16 @@
       const reasons = [];
       let score = 0;
 
-      // mode focus
       if (mode === "web" && type !== "nginx") continue;
       if (mode === "auth" && !(type.startsWith("syslog") || /sshd|sudo/i.test(rec))) continue;
 
-      // filter
       if (re){
         const ok = re.test(rec);
         if (re.global) re.lastIndex = 0;
         if (!ok) continue;
       }
 
-      // signature rules
+      // raw rules
       for (const r of rules){
         if (r.re.test(rec)){
           score += r.score;
@@ -1086,50 +1222,104 @@
         if (uniqPaths >= 30){ score += 5; reasons.push(`パス大量(${ip},+5)`); }
       }
 
-      // Base64 decode and artifact detection
-      const tokens = rec.split(/\s+/).slice(0, 300);
-      for (const tok of tokens){
-        if (!looksLikeBase64(tok)) continue;
+      // URL decode -> re-detect
+      const urlDecoded = decodeUrlMulti(rec, 2);
+      if (urlDecoded){
+        const add = applyRulesOnDecoded(urlDecoded, "URLデコード後", reasons);
+        score += add;
+        if (add > 0) decodedHitNotes.push(`#${idx}: URLデコード後に追加ヒット`);
+      }
 
-        // PNG base64 header
-        if (tok.startsWith("iVBORw0KGgo")){
-          try{
-            const bytes = b64ToBytes(tok);
-            addArtifact(`artifact_${idx}.png`, "image/png", bytes);
-            score += 8;
-            reasons.push("Base64→PNG(+8)");
-          }catch(_){}
+      // Token scan: base64/hex/jwt detection & decode -> re-detect & artifact
+      const tokens = rec.split(/\s+/).slice(0, 500);
+      for (const tok0 of tokens){
+        const kind = detectCryptoKind(tok0);
+        if (!kind) continue;
+
+        // bcrypt/JWT/hash presence is useful itself
+        if (kind === "bcrypt"){ score += 5; reasons.push("bcrypt検出(+5)"); }
+        if (kind === "MD5" || kind === "SHA1" || kind === "SHA256" || kind === "SHA512"){
+          score += 4; reasons.push(`${kind}検出(+4)`);
         }
 
-        const decoded = tryBase64Decode(tok);
-        if (!decoded) continue;
+        // JWT decode header/payload
+        if (kind === "JWT"){
+          // JWT is 3 parts (header.payload.signature) [4](https://auth0.com/docs/ja-jp/secure/tokens/json-web-tokens/json-web-token-structure)
+          const parts = tok0.split(".");
+          const h = base64UrlToText(parts[0]);
+          const p = base64UrlToText(parts[1]);
+          if (h || p){
+            score += 4;
+            reasons.push("JWT分解(+4)");
+            const combined = `JWT_HEADER:${h||""}\nJWT_PAYLOAD:${p||""}`;
+            const add = applyRulesOnDecoded(combined, "JWTデコード後", reasons);
+            score += add;
+            // flag inside payload?
+            for (const hit of extractFlagCandidates(combined)) flagSet.add(hit);
+          }
+          continue;
+        }
 
-        const fh = extractFlagCandidates(decoded);
-        if (fh.length){
-          fh.forEach(f=>{
-            if (/^FLAGPART:/i.test(f)) {
-              const part = f.replace(/^FLAGPART:\s*/i, "");
-              if (part) flagSet.add(part);
-            } else {
-              flagSet.add(f);
+        // HEX decode
+        if (kind === "HEX"){
+          const decoded = tryHexToText(tok0);
+          if (decoded){
+            score += 3; reasons.push("HEXデコード(+3)");
+            const add = applyRulesOnDecoded(decoded, "HEXデコード後", reasons);
+            score += add;
+            for (const hit of extractFlagCandidates(decoded)) flagSet.add(hit);
+          } else {
+            // hex might be binary (rare); try sniff
+            try{
+              const bytes = hexToBytes(tok0);
+              const sniff = sniffFile(bytes);
+              if (sniff){
+                score += 6; reasons.push(`HEX→${sniff.ext}(+6)`);
+                addArtifact(`artifact_${idx}_hex.${sniff.ext}`, sniff.mime, bytes);
+              }
+            }catch(_){}
+          }
+          continue;
+        }
+
+        // Base64 decode (text + binary)
+        if (kind === "Base64"){
+          // decode bytes
+          let bytes = null;
+          try{ bytes = base64ToBytes(tok0); }catch(_){}
+          if (bytes){
+            // artifact sniff
+            const sniff = sniffFile(bytes);
+            if (sniff){
+              // PNG base64 often begins with iVBORw0KGgo... [1](https://my-open-log.com/posts/picoctf-flag-in-flame)
+              score += 8; reasons.push(`Base64→${sniff.ext}(+8)`);
+              addArtifact(`artifact_${idx}.${sniff.ext}`, sniff.mime, bytes);
             }
-          });
-          score += 8;
-          reasons.push("Base64内フラグ(+8)");
-        } else if (/flag|ctf|passwd|shadow|ssh|sudo|token|key/i.test(decoded)){
-          score += 3;
-          reasons.push("Base64内キーワード(+3)");
+
+            // decode text and re-detect
+            const decodedText = new TextDecoder("utf-8", {fatal:false}).decode(bytes);
+            if (decodedText && decodedText.trim().length){
+              // if decoded includes suspicious keywords
+              const add = applyRulesOnDecoded(decodedText, "Base64デコード後", reasons);
+              score += add;
+              for (const hit of extractFlagCandidates(decodedText)) flagSet.add(hit);
+            }
+          }
+          continue;
         }
       }
 
-      // very long base64 line
+      // very long base64 line case
       if (head.length > 20000 && /^[A-Za-z0-9+/=]+$/.test(head)){
         score += 6;
         reasons.push("超長Base64(+6)");
-        if (head.startsWith("iVBORw0KGgo")){
+        if (head.startsWith("iVBORw0KGgo")){ // common PNG base64 head [1](https://my-open-log.com/posts/picoctf-flag-in-flame)
           try{
-            const bytes = b64ToBytes(head);
-            addArtifact(`artifact_whole.png`, "image/png", bytes);
+            const bytes = base64ToBytes(head);
+            const sniff = sniffFile(bytes);
+            if (sniff){
+              addArtifact(`artifact_${idx}_whole.${sniff.ext}`, sniff.mime, bytes);
+            }
           }catch(_){}
         }
       }
@@ -1141,17 +1331,20 @@
 
     suspicious.sort((a,b)=> b.score - a.score);
 
-    // summaries
     const topIps = [...ipTotal.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
     const topPaths = [...pathCount.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
 
     const finalFlags = new Set([...flagSet]);
     if (reconstructed) finalFlags.add(reconstructed);
 
-    // Build Japanese report (OUTPUT)
+    // crypto summary string
+    const cryptoSummary = [...cryptoFindings.entries()].sort((a,b)=>b[1]-a[1])
+      .map(([k,v])=>`${k}: ${v}件`).slice(0, 12);
+
+    // Build Japanese report
     let out = "";
     out += "==============================\n";
-    out += "  CTF ログ解析レポート\n";
+    out += "  CTF ログ解析レポート（拡張検知）\n";
     out += "==============================\n\n";
 
     out += "■ 解析概要\n";
@@ -1174,6 +1367,10 @@
     out += "■ FLAGPART 復元結果\n";
     out += "------------------------------\n";
     out += reconstructed ? reconstructed + "\n\n" : "（なし）\n\n";
+
+    out += "■ 暗号/ハッシュ/トークン候補（検出数）\n";
+    out += "------------------------------\n";
+    out += cryptoSummary.length ? cryptoSummary.join("\n") + "\n\n" : "（なし）\n\n";
 
     out += "■ 攻撃元として怪しいIP（出現回数）\n";
     out += "------------------------------\n";
@@ -1202,10 +1399,14 @@
     }
     out += "\n\n";
 
-    out += "■ Base64 / ファイル痕跡\n";
+    out += "■ デコードで追加ヒットした可能性（参考）\n";
+    out += "------------------------------\n";
+    out += decodedHitNotes.length ? decodedHitNotes.slice(0, 50).join("\n") + "\n\n" : "（なし）\n\n";
+
+    out += "■ Base64/HEX から抽出されたファイル（Artifacts）\n";
     out += "------------------------------\n";
     out += artifacts.length
-      ? `・Base64からファイルを検出: ${artifacts.length} 件（下のArtifactsからダウンロード）\n`
+      ? `・抽出: ${artifacts.length} 件（画面下のArtifactsからダウンロード）\n`
       : "・検出なし\n";
 
     out += "\n==============================\n";
@@ -1217,19 +1418,19 @@
     processTimeEl.textContent = `処理時間: ${(performance.now()-t0).toFixed(1)}ms`;
     setStatus("完了", "ok");
 
-    // Summary panel (Japanese)
     summaryEl.style.display = "block";
     summaryEl.innerHTML = [
       ["総ログ（レコード）", records.length],
       ["怪しいログ件数", suspicious.length],
       ["フラグ候補数", finalFlags.size],
       ["Artifacts数", artifacts.length],
+      ["暗号/ハッシュ候補種別", cryptoFindings.size],
     ].map(([k,v])=>`<div class="row"><div class="k">${k}</div><div class="v">${String(v)}</div></div>`).join("");
 
     renderArtifacts();
   }
 
-  // ===== Extract matched (regex only) =====
+  // ===== Extract (regex only) =====
   async function extractMatched(){
     hideError();
     resetArtifacts();
@@ -1279,7 +1480,7 @@
     inputEl.value = '';
     outputEl.value = '';
     regexEl.value = '';
-    thresholdEl.value = '7';
+    thresholdEl.value = '8';
     topNEl.value = '50';
     huntModeEl.value = 'mixed';
     processTimeEl.textContent = '';
@@ -1361,19 +1562,6 @@
       hunt();
     }
   });
-
-  // ===== Typewriter subtitle =====
-  (function typewriterBoot(){
-    const sub = document.querySelector('.subtitle');
-    const text = sub.textContent.trim();
-    sub.textContent = '';
-    let i = 0;
-    const interval = setInterval(()=>{
-      sub.textContent += text[i];
-      i++;
-      if (i >= text.length) clearInterval(interval);
-    }, 40);
-  })();
 
   // init
   updateCounters();
