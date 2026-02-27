@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTF ログハンター</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+    :root {
+      --cyan: #00d4ff;
+      --cyan-dim: rgba(0, 212, 255, 0.3);
+      --cyan-glow: rgba(0, 212, 255, 0.15);
+      --orange: #ff6a00;
+      --orange-dim: rgba(255, 106, 0, 0.3);
+      --blue: #1e90ff;
+      --bg-dark: #0a0e17;
+      --panel-bg: rgba(0, 20, 40, 0.6);
+      --text: #c0dce8;
+      --text-bright: #e8f4f8;
+      --good: #00ff88;
+      --bad: #ff4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Share Tech Mono', monospace;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* === CUSTOM SCROLLBAR === */
+    body::-webkit-scrollbar { width: 6px; }
+    body::-webkit-scrollbar-track { background: rgba(0, 10, 20, 0.8); }
+    body::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 3px; }
+    body::-webkit-scrollbar-thumb:hover { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+
+    /* === BACKGROUND GRID === */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: gridShift 20s linear infinite;
+    }
+    @keyframes gridShift { 0% { transform: translate(0, 0); } 100% { transform: translate(40px, 40px); } }
+
+    /* === SCAN LINE === */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      box-shadow: 0 0 30px var(--cyan), 0 0 60px var(--cyan-dim);
+      animation: scanLine 4s ease-in-out infinite;
+      z-index: 100;
+      pointer-events: none;
+    }
+    @keyframes scanLine { 0% { top: -5%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 105%; opacity: 0; } }
+
+    /* === FLOATING PARTICLES === */
+    .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .particle {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: var(--cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--cyan);
+      animation: float linear infinite;
+      opacity: 0;
+    }
+    @keyframes float {
+      0% { transform: translateY(100vh) scale(0); opacity: 0; }
+      10% { opacity: 0.8; }
+      90% { opacity: 0.8; }
+      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+
+    /* === CONTAINER === */
+    .container { position: relative; width: 100%; max-width: 920px; margin: auto; padding: 20px; z-index: 10; }
+
+    /* === HUD FRAME === */
+    .hud-frame {
+      position: relative;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 4px;
+      padding: 36px 32px 28px;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.05), inset 0 0 30px rgba(0, 212, 255, 0.02);
+    }
+    .hud-frame::before, .hud-frame::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      border-color: var(--cyan);
+      border-style: solid;
+    }
+    .hud-frame::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+    .hud-frame::after  { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+    .corner-bl, .corner-br {
+      position: absolute;
+      width: 20px; height: 20px;
+      border-color: var(--cyan);
+      border-style: solid;
+    }
+    .corner-bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+    .corner-br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+    /* === HUD TOP DECO === */
+    .hud-deco-top {
+      position: absolute;
+      top: 8px; left: 28px; right: 28px;
+      display: flex; justify-content: space-between;
+      font-size: 0.55rem;
+      color: rgba(0, 212, 255, 0.15);
+      letter-spacing: 2px;
+      pointer-events: none;
+      gap: 10px;
+    }
+
+    /* === PROCESSING OVERLAY === */
+    .processing-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0, 10, 20, 0.85);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 50;
+      border-radius: 4px;
+    }
+    .processing-overlay.active { display: flex; }
+    .processing-ring {
+      width: 50px; height: 50px;
+      border: 2px solid transparent;
+      border-top-color: var(--cyan);
+      border-right-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      position: relative;
+    }
+    .processing-ring::before {
+      content: '';
+      position: absolute; inset: 6px;
+      border: 2px solid transparent;
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite reverse;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* === HEADER === */
+    .header { text-align: center; margin-bottom: 14px; position: relative; }
+    .header-line { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
+    .header-line .deco { width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--cyan)); }
+    .header-line .deco:last-child { background: linear-gradient(90deg, var(--cyan), transparent); }
+    .arc-reactor {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan);
+      display: flex; align-items: center; justify-content: center;
+      animation: reactorPulse 2s ease-in-out infinite;
+      position: relative;
+    }
+    .arc-reactor::before {
+      content: '';
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan);
+      box-shadow: 0 0 12px var(--cyan), inset 0 0 8px var(--cyan-glow);
+    }
+    .arc-reactor::after {
+      content: '';
+      position: absolute; inset: 4px;
+      border-radius: 50%;
+      border: 1px dashed var(--cyan-dim);
+      animation: reactorSpin 6s linear infinite;
+    }
+    @keyframes reactorPulse {
+      0%, 100% { box-shadow: 0 0 15px var(--cyan-dim); }
+      50% { box-shadow: 0 0 30px var(--cyan-dim), 0 0 60px rgba(0, 212, 255, 0.1); }
+    }
+    @keyframes reactorSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--cyan);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 6px;
+      text-shadow: 0 0 20px var(--cyan-dim);
+      text-transform: uppercase;
+    }
+    .subtitle {
+      font-size: 0.7rem;
+      color: var(--cyan-dim);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* === STATUS BAR === */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.08);
+      margin-bottom: 14px;
+      font-size: 0.7rem;
+      color: var(--cyan-dim);
+      letter-spacing: 1px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 8px var(--good);
+      margin-right: 6px;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .status-bar .time { color: var(--orange-dim); }
+
+    .pill {
+      padding: 3px 8px;
+      border: 1px solid rgba(0,212,255,.15);
+      border-radius: 999px;
+      background: rgba(0,10,20,.35);
+      color: rgba(0,212,255,.55);
+      white-space: nowrap;
+    }
+
+    /* === HELP PANEL === */
+    .help {
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      background: rgba(0, 10, 20, 0.45);
+      border-radius: 2px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+    .help summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+      color: rgba(0,212,255,.75);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .help summary::-webkit-details-marker { display: none; }
+    .help .help-body {
+      margin-top: 10px;
+      color: rgba(0,212,255,.35);
+      font-size: 0.75rem;
+      line-height: 1.7;
+      letter-spacing: .4px;
+    }
+    .help .kbd {
+      display: inline-block;
+      border: 1px solid rgba(0,212,255,.15);
+      background: rgba(0,20,40,.5);
+      border-radius: 2px;
+      padding: 1px 6px;
+      color: rgba(0,212,255,.7);
+      font-size: 0.72rem;
+      margin: 0 2px;
+    }
+
+    /* === FILE DROP === */
+    .file-drop {
+      border: 1px dashed var(--cyan-dim);
+      border-radius: 2px;
+      padding: 14px;
+      text-align: center;
+      color: rgba(0, 212, 255, 0.35);
+      font-size: 0.75rem;
+      margin-bottom: 14px;
+      transition: all 0.3s;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+    }
+    .file-drop::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, var(--cyan-glow), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s;
+    }
+    .file-drop:hover::before, .file-drop.dragover::before { transform: translateX(100%); }
+    .file-drop:hover, .file-drop.dragover { border-color: var(--cyan); color: var(--cyan); }
+    .file-drop input { display: none; }
+
+    /* === LABELS === */
+    label {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--cyan);
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    label .bracket { color: var(--orange-dim); font-size: 0.85rem; }
+
+    /* === TEXTAREA === */
+    textarea {
+      width: 100%;
+      height: 130px;
+      padding: 14px;
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      border-radius: 2px;
+      background: rgba(0, 10, 20, 0.7);
+      color: #ffffff;
+      font-size: 0.9rem;
+      font-family: 'Share Tech Mono', monospace;
+      resize: vertical;
+      transition: all 0.3s;
+      line-height: 1.6;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.1), inset 0 0 15px rgba(0, 212, 255, 0.03);
+    }
+    textarea::placeholder { color: rgba(0, 212, 255, 0.35); letter-spacing: 1px; }
+
+    .byte-counter {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: rgba(0, 212, 255, 0.2);
+      margin-top: 4px;
+      letter-spacing: 1px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* === CONTROLS === */
+    .controls {
+      margin: 12px 0 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .ctrl {
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      background: rgba(0, 10, 20, 0.55);
+      padding: 10px 12px;
+      border-radius: 2px;
+    }
+    .ctrl .title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      letter-spacing: 2px;
+      color: rgba(0, 212, 255, 0.55);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .ctrl input, .ctrl select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid rgba(0, 212, 255, 0.14);
+      border-radius: 2px;
+      background: rgba(0, 10, 20, 0.6);
+      color: #fff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .ctrl input:focus, .ctrl select:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0, 212, 255, 0.08); }
+    .hint { color: rgba(0, 212, 255, 0.25); font-size: 0.65rem; margin-top: 6px; letter-spacing: 1px; }
+
+    /* === SWAP === */
+    .swap-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+      position: relative;
+    }
+    .swap-row::before, .swap-row::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+    }
+    .btn-swap {
+      width: 32px; height: 32px;
+      border: 1px solid var(--cyan-dim);
+      border-radius: 50%;
+      background: rgba(0, 20, 40, 0.8);
+      color: var(--cyan);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 12px;
+    }
+    .btn-swap:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px var(--cyan-dim);
+      transform: rotate(180deg);
+    }
+
+    /* === OUTPUT COPY === */
+    .output-wrapper { position: relative; }
+    .btn-copy {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 10px;
+      font-size: 0.65rem;
+      font-family: 'Orbitron', sans-serif;
+      background: rgba(0, 212, 255, 0.05);
+      color: var(--cyan-dim);
+      border: 1px solid rgba(0, 212, 255, 0.15);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .btn-copy:hover { background: rgba(0, 212, 255, 0.1); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 10px var(--cyan-dim); }
+    .btn-copy.copied { border-color: var(--good); color: var(--good); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+
+    /* === BUTTONS === */
+    .btn-group { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .btn {
+      flex: 1;
+      padding: 12px 18px;
+      border: 1px solid;
+      border-radius: 2px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+      background: transparent;
+      min-width: 160px;
+    }
+    .btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, currentColor, transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .btn:hover::before { opacity: 0.05; }
+
+    .btn-hunt { border-color: var(--cyan-dim); color: var(--cyan); }
+    .btn-hunt:hover { border-color: var(--cyan); box-shadow: 0 0 20px var(--cyan-dim), inset 0 0 20px rgba(0, 212, 255, 0.05); text-shadow: 0 0 10px var(--cyan); }
+
+    .btn-extract { border-color: var(--orange-dim); color: var(--orange); }
+    .btn-extract:hover { border-color: var(--orange); box-shadow: 0 0 20px var(--orange-dim), inset 0 0 20px rgba(255, 106, 0, 0.05); text-shadow: 0 0 10px var(--orange); }
+
+    .btn-export { border-color: rgba(30, 144, 255, 0.25); color: rgba(30, 144, 255, 0.9); }
+    .btn-export:hover { border-color: rgba(30, 144, 255, 0.7); box-shadow: 0 0 20px rgba(30, 144, 255, 0.25); }
+
+    .btn-clear { flex: 0.6; border-color: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.3); min-width: 120px; }
+    .btn-clear:hover { border-color: rgba(255, 255, 255, 0.3); color: rgba(255, 255, 255, 0.6); }
+
+    /* === ERROR === */
+    .error {
+      background: rgba(255, 50, 50, 0.05);
+      border: 1px solid rgba(255, 50, 50, 0.2);
+      color: var(--bad);
+      padding: 10px 14px;
+      border-radius: 2px;
+      margin-top: 12px;
+      font-size: 0.8rem;
+      display: none;
+      letter-spacing: 1px;
+    }
+    .error::before {
+      content: '⚠ 注意: ';
+      color: var(--orange);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+    }
+
+    /* === SUMMARY === */
+    .summary {
+      margin-top: 12px;
+      border: 1px solid rgba(0, 212, 255, 0.1);
+      background: rgba(0, 10, 20, 0.35);
+      border-radius: 2px;
+      padding: 10px 12px;
+      display: none;
+    }
+    .summary .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.72rem;
+      color: rgba(0, 212, 255, 0.35);
+      padding: 3px 0;
+      border-bottom: 1px dashed rgba(0, 212, 255, 0.08);
+    }
+    .summary .row:last-child { border-bottom: none; }
+    .k { color: rgba(0, 212, 255, 0.22); }
+    .v { color: rgba(0, 212, 255, 0.55); text-align: right; }
+
+    /* === ARTIFACTS === */
+    .artifacts {
+      margin-top: 10px;
+      display: none;
+      border: 1px dashed rgba(0,212,255,.15);
+      border-radius: 2px;
+      padding: 10px 12px;
+      background: rgba(0,10,20,.35);
+    }
+    .artifacts .title {
+      font-family:'Orbitron',sans-serif;
+      font-size:.68rem;
+      letter-spacing:2px;
+      color: rgba(0,212,255,.55);
+      margin-bottom:8px;
+      text-transform: uppercase;
+      display:flex; justify-content:space-between;
+      gap:10px;
+    }
+    .artifact-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+    .artifact-buttons button{
+      padding:8px 10px;
+      border:1px solid rgba(0,212,255,.15);
+      background: rgba(0,20,40,.6);
+      color: rgba(0,212,255,.65);
+      border-radius:2px;
+      font-family:'Share Tech Mono', monospace;
+      font-size:.75rem;
+      cursor:pointer;
+      transition: all .25s;
+    }
+    .artifact-buttons button:hover{
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow:0 0 10px rgba(0,212,255,.12);
+    }
+
+    /* === BOTTOM DECO === */
+    .hud-deco-bottom {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 16px;
+      opacity: 0.3;
+    }
+    .hud-deco-bottom span { width: 3px; height: 3px; background: var(--cyan); display: block; }
+    .hud-deco-bottom span:nth-child(odd) { opacity: 0.4; }
+
+    @media (max-width: 700px) {
+      .hud-frame { padding: 28px 18px 20px; }
+      h1 { font-size: 1.1rem; letter-spacing: 3px; }
+      .btn { font-size: 0.7rem; letter-spacing: 2px; padding: 10px 12px; min-width: 140px; }
+      .controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="particles" id="particles"></div>
+
+  <div class="container">
+    <div class="hud-frame">
+      <div class="corner-bl"></div>
+      <div class="corner-br"></div>
+
+      <div class="hud-deco-top">
+        <span>SYS.OK</span>
+        <span>CTF Log Hunter</span>
+        <span>v1.1.0 (JP)</span>
+      </div>
+
+      <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-ring"></div>
+      </div>
+
+      <div class="header">
+        <div class="header-line">
+          <span class="deco"></span>
+          <div class="arc-reactor"></div>
+          <span class="deco"></span>
+        </div>
+        <h1>CTF LOG HUNTER</h1>
+        <div class="subtitle">使い方が分かる 日本語UI</div>
+      </div>
+
+      <div class="status-bar">
+        <span><span class="status-dot"></span>システム稼働中</span>
+        <span class="pill" id="statusPill">準備完了</span>
+        <span class="time" id="clock">00:00:00</span>
+      </div>
+
+      <!-- 使い方（折りたたみ） -->
+      <details class="help" open>
+        <summary>
+          <span>使い方（CTF向け：3ステップ）</span>
+          <span style="color:rgba(255,106,0,.45)">CLICK</span>
+        </summary>
+        <div class="help-body">
+          <div>1) ログを貼り付ける or ファイルをドロップ</div>
+          <div>2) <b>「Hunt（自動抽出）」</b> を押す（<span class="kbd">Ctrl</span>+<span class="kbd">Enter</span> でもOK）</div>
+          <div>3) 出力の <b>「フラグ候補」</b> → <b>「重要（スコア順）」</b> の順に見ればOK</div>
+          <br>
+          <div>・Webアクセスログ / syslog(auth.log) / アプリログが混在していても解析します。</div>
+          <div>・分からなければ、設定は触らず <b>そのままHunt</b> が一番早いです。</div>
+        </div>
+      </details>
+
+      <div class="file-drop" id="fileDrop">
+        ▸ ログファイルをドラッグ＆ドロップ / クリックして選択（.log .txt）
+        <input type="file" id="fileInput" />
+      </div>
+
+      <label><span class="bracket">[</span> 入力（ログ） <span class="bracket">]</span></label>
+      <textarea id="input" placeholder="// ここにCTF配布ログを貼り付け（そのままでOK）" spellcheck="false"></textarea>
+      <div class="byte-counter">
+        <span id="inputLen">0 文字</span>
+        <span>ショートカット: Ctrl+Enter → Hunt</span>
+      </div>
+
+      <div class="controls">
+        <div class="ctrl">
+          <div class="title">
+            <span>絞り込み（任意）</span>
+            <span style="color:rgba(255,106,0,.35)">REGEX</span>
+          </div>
+          <input id="regex" placeholder="例: ERROR | Failed password | flag\\{ | /wp-admin | \\.git" />
+          <div class="hint">分からなければ空欄でOK（全体から自動抽出）</div>
+        </div>
+
+        <div class="ctrl">
+          <div class="title">
+            <span>解析モード</span>
+            <span style="color:rgba(0,212,255,.35)">推奨: MIXED</span>
+          </div>
+          <select id="huntMode">
+            <option value="mixed" selected>MIXED（Web + 認証 + アプリ）</option>
+            <option value="web">WEB中心（アクセスログ優先）</option>
+            <option value="auth">AUTH中心（ssh/sudo優先）</option>
+          </select>
+          <div class="hint">CTFは混在が多いので基本MIXED推奨</div>
+        </div>
+
+        <div class="ctrl">
+          <div class="title">
+            <span>検知レベル</span>
+            <span style="color:rgba(0,212,255,.35)">スコア閾値</span>
+          </div>
+          <select id="threshold">
+            <option value="10">LOW（かなり怪しいものだけ）</option>
+            <option value="7" selected>MED（おすすめ）</option>
+            <option value="5">HIGH（広く拾う）</option>
+          </select>
+          <div class="hint">HIGHは拾いすぎる場合あり（まずはMED）</div>
+        </div>
+
+        <div class="ctrl">
+          <div class="title">
+            <span>表示件数</span>
+            <span style="color:rgba(0,212,255,.35)">TOP-N</span>
+          </div>
+          <select id="topN">
+            <option value="30">上位30件</option>
+            <option value="50" selected>上位50件</option>
+            <option value="100">上位100件</option>
+          </select>
+          <div class="hint">重要ログ（スコア順）を何件表示するか</div>
+        </div>
+      </div>
+
+      <div class="swap-row">
+        <button class="btn-swap" onclick="swapFields()" title="入力と出力を入れ替え">⇅</button>
+      </div>
+
+      <label><span class="bracket">[</span> 出力（解析結果） <span class="bracket">]</span></label>
+      <div class="output-wrapper">
+        <textarea id="output" readonly placeholder="// Hunt の結果がここに表示されます" spellcheck="false"></textarea>
+        <button class="btn-copy" onclick="copyOutput()">コピー</button>
+      </div>
+
+      <div class="byte-counter">
+        <span id="outputLen">0 文字</span>
+        <span id="processTime"></span>
+      </div>
+
+      <div class="summary" id="summary"></div>
+
+      <div class="artifacts" id="artifacts">
+        <div class="title">
+          <span>抽出されたファイル（Artifacts）</span>
+          <span style="color:rgba(0,212,255,.25)" id="artifactHint">0 件</span>
+        </div>
+        <div class="artifact-buttons" id="artifactButtons"></div>
+      </div>
+
+      <div class="error" id="error"></div>
+
+      <div class="btn-group">
+        <button class="btn btn-hunt" onclick="hunt()">Hunt（自動抽出）</button>
+        <button class="btn btn-extract" onclick="extractMatched()">Extract（絞り込み抽出）</button>
+        <button class="btn btn-export" onclick="downloadOutput()">Export（結果保存）</button>
+        <button class="btn btn-clear" onclick="clearAll()">Clear（消去）</button>
+      </div>
+
+      <div class="hud-deco-bottom">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ===== Elements =====
+  const inputEl = document.getElementById('input');
+  const outputEl = document.getElementById('output');
+  const errorEl = document.getElementById('error');
+  const fileDropEl = document.getElementById('fileDrop');
+  const fileInputEl = document.getElementById('fileInput');
+  const clockEl = document.getElementById('clock');
+  const inputLenEl = document.getElementById('inputLen');
+  const outputLenEl = document.getElementById('outputLen');
+  const processTimeEl = document.getElementById('processTime');
+  const overlay = document.getElementById('processingOverlay');
+  const statusPill = document.getElementById('statusPill');
+  const summaryEl = document.getElementById('summary');
+
+  const artifactsEl = document.getElementById('artifacts');
+  const artifactButtonsEl = document.getElementById('artifactButtons');
+  const artifactHintEl = document.getElementById('artifactHint');
+
+  const regexEl = document.getElementById('regex');
+  const huntModeEl = document.getElementById('huntMode');
+  const thresholdEl = document.getElementById('threshold');
+  const topNEl = document.getElementById('topN');
+
+  // ===== Clock =====
+  function updateClock() {
+    const now = new Date();
+    clockEl.textContent = now.toTimeString().split(' ')[0];
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ===== Particles =====
+  (function createParticles() {
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (4 + Math.random() * 8) + 's';
+      p.style.animationDelay = Math.random() * 10 + 's';
+      p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+      container.appendChild(p);
+    }
+  })();
+
+  // ===== Processing =====
+  function showProcessing() {
+    return new Promise(resolve => {
+      overlay.classList.add('active');
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        resolve();
+      }, 420);
+    });
+  }
+
+  function setStatus(text, kind="ready"){
+    statusPill.textContent = text;
+    const map = {
+      ready: "rgba(0,212,255,.55)",
+      ok: "rgba(0,255,136,.55)",
+      warn: "rgba(255,106,0,.55)",
+      bad: "rgba(255,68,68,.7)"
+    };
+    statusPill.style.color = map[kind] || map.ready;
+    statusPill.style.borderColor = "rgba(0,212,255,.15)";
+  }
+
+  // ===== Helpers =====
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+    setStatus("エラー", "bad");
+  }
+  function hideError() { errorEl.style.display = 'none'; }
+
+  function updateCounters(){
+    inputLenEl.textContent = inputEl.value.length + ' 文字';
+    outputLenEl.textContent = outputEl.value.length + ' 文字';
+  }
+
+  function splitLines(text){
+    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  }
+
+  function safeRegExp(pattern){
+    if (!pattern) return null;
+    const m = pattern.match(/^\/(.+)\/([gimsuy]*)$/);
+    try{
+      if (m) return new RegExp(m[1], m[2] || 'g');
+      return new RegExp(pattern, 'g');
+    }catch(e){
+      return { __invalid:true, message:e.message };
+    }
+  }
+
+  function extractIPs(s){
+    return (s.match(/\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\b/g) || []);
+  }
+
+  function extractFlagCandidates(s){
+    const hits = [];
+    const re = /(flag\{[^}]{3,}\}|ctf\{[^}]{3,}\}|FLAG\[[^\]]{3,}\]|FLAGPART:\s*.+)/gi;
+    let m;
+    while ((m = re.exec(s)) !== null) hits.push(m[0]);
+    return hits;
+  }
+
+  function looksLikeBase64(tok){
+    return tok.length >= 40 && tok.length % 4 === 0 && /^[A-Za-z0-9+/=]+$/.test(tok);
+  }
+
+  function tryBase64Decode(b64){
+    try{
+      const bin = atob(b64);
+      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      return new TextDecoder("utf-8", {fatal:false}).decode(bytes);
+    }catch(e){ return null; }
+  }
+
+  function b64ToBytes(b64){
+    const bin = atob(b64);
+    return Uint8Array.from(bin, c=>c.charCodeAt(0));
+  }
+
+  function bump(map, key, n=1){ map.set(key, (map.get(key)||0)+n); }
+
+  // ===== Mixed record grouping =====
+  function isAnyRecordStart(line){
+    if (!line || !line.trim()) return false;
+    if (/<\d{1,3}>\d+\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(line)) return true; // syslog5424
+    if (/(?:<\d{1,3}>)?\s*[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+/.test(line)) return true; // syslog3164
+    if (/\[\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2}\s+[+\-]\d{4}\]\s+"/.test(line)) return true; // nginx combined
+    if (/^\s*\d{4}[-\/]\d{2}[-\/]\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(line)) return true; // app
+    return false;
+  }
+
+  function detectRecordType(head){
+    if (/<\d{1,3}>\d+\s+\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(head)) return "syslog5424";
+    if (/(?:<\d{1,3}>)?\s*[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+/.test(head)) return "syslog3164";
+    if (/\[\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2}\s+[+\-]\d{4}\]\s+"/.test(head)) return "nginx";
+    return "app";
+  }
+
+  function groupMixedRecords(lines){
+    const records = [];
+    let cur = null;
+
+    const continuation = (l) =>
+      /^\s+at\s+/.test(l) || /^\s+\.{3}\s+\d+\s+more/.test(l) || /^\s*Caused by:/.test(l) || /^\s*\.\.\./.test(l);
+
+    for (const line of lines){
+      if (isAnyRecordStart(line)){
+        if (cur) records.push(cur);
+        cur = line;
+      } else if (cur && (continuation(line) || line.startsWith(" ") || line.startsWith("\t"))){
+        cur += "\n" + line;
+      } else {
+        if (!cur) cur = line;
+        else cur += "\n" + line;
+      }
+    }
+    if (cur) records.push(cur);
+    return records;
+  }
+
+  // ===== Parse web request (nginx combined-ish) =====
+  function parseNginx(head){
+    const m = head.match(/"(\w+)\s+([^"]+?)\s+HTTP\/[0-9.]+"\s+(\d{3})\s+/);
+    if (!m) return null;
+    return { method: m[1], path: m[2], status: parseInt(m[3],10) };
+  }
+
+  // ===== Suspicious rules (detection-only) =====
+  function buildRules(){
+    return [
+      { id:"認証失敗", score:8,  re:/Failed password|authentication failure|invalid user/i, reason:"認証失敗（総当たりの可能性）" },
+      { id:"権限操作", score:10, re:/Accepted .* for root\b|session opened for user root\b|sudo:.*USER=root/i, reason:"root/sudo（権限昇格の可能性）" },
+      { id:"スキャナ", score:7,  re:/\b(nikto|gobuster|dirbuster|sqlmap|nmap|masscan|ffuf|dirb)\b/i, reason:"スキャナ/ツール痕跡" },
+      { id:"HTTP401", score:5,  re:/\s401\s/, reason:"401（ログイン失敗が多い場合は要注意）" },
+      { id:"HTTP403", score:4,  re:/\s403\s/, reason:"403（ブロック/探索の可能性）" },
+      { id:"SQLi", score:9, re:/\bUNION\b\s+\bSELECT\b|(\bor\b\s+1=1\b)|information_schema|sleep\(|waitfor\s+delay/i, reason:"SQLインジェクションっぽい" },
+      { id:"XSS", score:7, re:/<script|%3cscript|onerror=|onload=|javascript:/i, reason:"XSSっぽい" },
+      { id:"トラバーサル", score:9, re:/(\.\.\/)|(\.\.%2f)|(%2e%2e%2f)|(%2e%2e\/)|(\.\.%5c)|(%2e%2e%5c)|(%252e%252e%255c)/i, reason:"パストラバーサルっぽい" },
+      { id:"重要ファイル", score:8, re:/\/etc\/passwd|\/etc\/shadow|\/proc\/self\/environ|\/proc\/self\/cmdline|\.env\b|wp-config\.php|\/\.git\b/i, reason:"重要ファイル参照っぽい" },
+      { id:"コマンド実行", score:10, re:/\b(cmd=|exec=|system=|passthru=|shell_exec=)\b/i, reason:"コマンド実行パラメータっぽい" },
+      { id:"フラグ", score:8, re:/flag\{|ctf\{|FLAG\[|FLAGPART:/i, reason:"フラグ/断片の可能性" },
+    ];
+  }
+
+  // ===== Artifacts =====
+  let artifacts = [];
+  function resetArtifacts(){
+    artifacts = [];
+    artifactsEl.style.display = "none";
+    artifactButtonsEl.innerHTML = "";
+    artifactHintEl.textContent = "0 件";
+  }
+  function addArtifact(name, mime, bytes){
+    const blob = new Blob([bytes], {type: mime});
+    artifacts.push({name, mime, blob});
+  }
+  function renderArtifacts(){
+    if (!artifacts.length) return;
+    artifactsEl.style.display = "block";
+    artifactHintEl.textContent = `${artifacts.length} 件`;
+    artifactButtonsEl.innerHTML = "";
+    artifacts.forEach((a)=>{
+      const btn = document.createElement("button");
+      btn.textContent = `ダウンロード: ${a.name}`;
+      btn.onclick = ()=>{
+        const url = URL.createObjectURL(a.blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = a.name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      };
+      artifactButtonsEl.appendChild(btn);
+    });
+  }
+
+  // ===== HUNT (main) =====
+  async function hunt(){
+    hideError();
+    summaryEl.style.display = "none";
+    resetArtifacts();
+
+    const raw = inputEl.value;
+    if (!raw.trim()){
+      showError("入力が空です。ログを貼り付けるか、ファイルを読み込んでください。");
+      return;
+    }
+
+    const filter = regexEl.value.trim();
+    const re = safeRegExp(filter);
+    if (re && re.__invalid){
+      showError("絞り込み（Regex）が不正です: " + re.message);
+      return;
+    }
+
+    const threshold = parseInt(thresholdEl.value, 10);
+    const topN = parseInt(topNEl.value, 10);
+    const mode = huntModeEl.value;
+
+    const t0 = performance.now();
+    setStatus("解析中...", "warn");
+    await showProcessing();
+
+    const lines = splitLines(raw);
+    const records = groupMixedRecords(lines);
+    const rules = buildRules();
+
+    // Counters for anomaly boosts
+    const ipTotal = new Map();
+    const ip401 = new Map();
+    const ipAuthFail = new Map();
+    const ipPaths = new Map(); // ip -> Set(paths)
+    const pathCount = new Map();
+
+    const flagParts = [];
+    const flagSet = new Set();
+
+    // Pass 1: counters
+    for (const rec of records){
+      const head = (rec.split("\n")[0] || "");
+      const ips = extractIPs(rec);
+      ips.forEach(ip => bump(ipTotal, ip));
+      if (/\s401\s/.test(head)) ips.forEach(ip => bump(ip401, ip));
+      if (/Failed password|invalid user|authentication failure/i.test(rec)) ips.forEach(ip => bump(ipAuthFail, ip));
+
+      const req = parseNginx(head);
+      if (req){
+        bump(pathCount, req.path);
+        ips.forEach(ip=>{
+          if (!ipPaths.has(ip)) ipPaths.set(ip, new Set());
+          ipPaths.get(ip).add(req.path);
+        });
+      }
+
+      for (const hit of extractFlagCandidates(rec)){
+        if (/^FLAGPART:/i.test(hit)){
+          const part = hit.replace(/^FLAGPART:\s*/i, "");
+          flagParts.push(part);
+        } else {
+          flagSet.add(hit);
+        }
+      }
+    }
+
+    // reconstruct FLAGPART (unique first appearance order)
+    const seenParts = new Set();
+    const orderedParts = [];
+    for (const p of flagParts){
+      const key = p.trim();
+      if (!key) continue;
+      if (seenParts.has(key)) continue;
+      seenParts.add(key);
+      orderedParts.push(key);
+    }
+    const reconstructed = orderedParts.join("");
+
+    // Pass 2: score each record
+    const suspicious = [];
+    for (let idx=0; idx<records.length; idx++){
+      const rec = records[idx];
+      const head = (rec.split("\n")[0] || "");
+      const type = detectRecordType(head);
+      const ips = extractIPs(rec);
+      const reasons = [];
+      let score = 0;
+
+      // mode focus
+      if (mode === "web" && type !== "nginx") continue;
+      if (mode === "auth" && !(type.startsWith("syslog") || /sshd|sudo/i.test(rec))) continue;
+
+      // filter
+      if (re){
+        const ok = re.test(rec);
+        if (re.global) re.lastIndex = 0;
+        if (!ok) continue;
+      }
+
+      // signature rules
+      for (const r of rules){
+        if (r.re.test(rec)){
+          score += r.score;
+          reasons.push(`${r.id}(+${r.score})`);
+        }
+      }
+
+      // anomaly boosts
+      for (const ip of ips){
+        const f401 = ip401.get(ip)||0;
+        const fAuth = ipAuthFail.get(ip)||0;
+        const uniqPaths = ipPaths.get(ip)?.size || 0;
+
+        if (f401 >= 10){ score += 6; reasons.push(`401多発(${ip},+6)`); }
+        if (fAuth >= 8){ score += 6; reasons.push(`認証失敗多発(${ip},+6)`); }
+        if (uniqPaths >= 30){ score += 5; reasons.push(`パス大量(${ip},+5)`); }
+      }
+
+      // Base64 decode and artifact detection
+      const tokens = rec.split(/\s+/).slice(0, 300);
+      for (const tok of tokens){
+        if (!looksLikeBase64(tok)) continue;
+
+        // PNG base64 header
+        if (tok.startsWith("iVBORw0KGgo")){
+          try{
+            const bytes = b64ToBytes(tok);
+            addArtifact(`artifact_${idx}.png`, "image/png", bytes);
+            score += 8;
+            reasons.push("Base64→PNG(+8)");
+          }catch(_){}
+        }
+
+        const decoded = tryBase64Decode(tok);
+        if (!decoded) continue;
+
+        const fh = extractFlagCandidates(decoded);
+        if (fh.length){
+          fh.forEach(f=>{
+            if (/^FLAGPART:/i.test(f)) {
+              const part = f.replace(/^FLAGPART:\s*/i, "");
+              if (part) flagSet.add(part);
+            } else {
+              flagSet.add(f);
+            }
+          });
+          score += 8;
+          reasons.push("Base64内フラグ(+8)");
+        } else if (/flag|ctf|passwd|shadow|ssh|sudo|token|key/i.test(decoded)){
+          score += 3;
+          reasons.push("Base64内キーワード(+3)");
+        }
+      }
+
+      // very long base64 line
+      if (head.length > 20000 && /^[A-Za-z0-9+/=]+$/.test(head)){
+        score += 6;
+        reasons.push("超長Base64(+6)");
+        if (head.startsWith("iVBORw0KGgo")){
+          try{
+            const bytes = b64ToBytes(head);
+            addArtifact(`artifact_whole.png`, "image/png", bytes);
+          }catch(_){}
+        }
+      }
+
+      if (score >= threshold){
+        suspicious.push({ idx, score, reasons, head, rec, ips, type });
+      }
+    }
+
+    suspicious.sort((a,b)=> b.score - a.score);
+
+    // summaries
+    const topIps = [...ipTotal.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const topPaths = [...pathCount.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    const finalFlags = new Set([...flagSet]);
+    if (reconstructed) finalFlags.add(reconstructed);
+
+    // Build Japanese report (OUTPUT)
+    let out = "";
+    out += "==============================\n";
+    out += "  CTF ログ解析レポート\n";
+    out += "==============================\n\n";
+
+    out += "■ 解析概要\n";
+    out += "------------------------------\n";
+    out += `・解析モード        : ${mode.toUpperCase()}\n`;
+    out += `・総ログ（レコード）: ${records.length}\n`;
+    out += `・怪しいログ件数    : ${suspicious.length}\n`;
+    out += `・検知レベル（閾値）: ${threshold} 以上\n`;
+    out += `・絞り込み（Regex） : ${filter || "なし"}\n\n`;
+
+    out += "■ フラグ候補\n";
+    out += "------------------------------\n";
+    if (finalFlags.size){
+      [...finalFlags].slice(0, 80).forEach(f => { out += `${f}\n`; });
+    } else {
+      out += "（なし）\n";
+    }
+    out += "\n";
+
+    out += "■ FLAGPART 復元結果\n";
+    out += "------------------------------\n";
+    out += reconstructed ? reconstructed + "\n\n" : "（なし）\n\n";
+
+    out += "■ 攻撃元として怪しいIP（出現回数）\n";
+    out += "------------------------------\n";
+    out += topIps.length ? topIps.map(([ip,c])=>`${ip.padEnd(18,' ')} : ${c}`).join("\n") + "\n\n" : "（なし）\n\n";
+
+    out += "■ よくアクセスされたパス（Webログ検出時）\n";
+    out += "------------------------------\n";
+    out += topPaths.length ? topPaths.map(([p,c])=>`${p} : ${c}`).join("\n") + "\n\n" : "（なし）\n\n";
+
+    out += `■ 特に怪しいログ（重要・スコア順：上位${topN}件）\n`;
+    out += "------------------------------\n";
+    const show = suspicious.slice(0, topN);
+    if (!show.length){
+      out += "（閾値を下げると表示されます）\n";
+    } else {
+      for (const s of show){
+        out += `\n[スコア: ${String(s.score).padStart(2,'0')}]  #${s.idx}  種別=${s.type}\n`;
+        out += `理由: ${s.reasons.join(", ")}\n`;
+        out += `先頭行: ${s.head}\n`;
+        const parts = s.rec.split("\n");
+        if (parts.length > 1){
+          out += "内容（抜粋）:\n";
+          out += parts.slice(0, 7).map(x=>"  " + x).join("\n") + (parts.length>7 ? "\n  ...\n" : "\n");
+        }
+      }
+    }
+    out += "\n\n";
+
+    out += "■ Base64 / ファイル痕跡\n";
+    out += "------------------------------\n";
+    out += artifacts.length
+      ? `・Base64からファイルを検出: ${artifacts.length} 件（下のArtifactsからダウンロード）\n`
+      : "・検出なし\n";
+
+    out += "\n==============================\n";
+    out += "  解析終了\n";
+    out += "==============================\n";
+
+    outputEl.value = out;
+    updateCounters();
+    processTimeEl.textContent = `処理時間: ${(performance.now()-t0).toFixed(1)}ms`;
+    setStatus("完了", "ok");
+
+    // Summary panel (Japanese)
+    summaryEl.style.display = "block";
+    summaryEl.innerHTML = [
+      ["総ログ（レコード）", records.length],
+      ["怪しいログ件数", suspicious.length],
+      ["フラグ候補数", finalFlags.size],
+      ["Artifacts数", artifacts.length],
+    ].map(([k,v])=>`<div class="row"><div class="k">${k}</div><div class="v">${String(v)}</div></div>`).join("");
+
+    renderArtifacts();
+  }
+
+  // ===== Extract matched (regex only) =====
+  async function extractMatched(){
+    hideError();
+    resetArtifacts();
+
+    const raw = inputEl.value;
+    if (!raw.trim()){
+      showError("入力が空です。ログを貼り付けるか、ファイルを読み込んでください。");
+      return;
+    }
+    const filter = regexEl.value.trim();
+    const re = safeRegExp(filter);
+    if (!re || re.__invalid){
+      showError("ExtractはRegexが必要です（またはRegexが不正です）。");
+      return;
+    }
+
+    const t0 = performance.now();
+    setStatus("抽出中...", "warn");
+    await showProcessing();
+
+    const records = groupMixedRecords(splitLines(raw));
+    const out = [];
+    for (const r of records){
+      const ok = re.test(r);
+      if (re.global) re.lastIndex = 0;
+      if (ok) out.push(r);
+    }
+
+    outputEl.value =
+      "==============================\n" +
+      "  絞り込み抽出（Extract）\n" +
+      "==============================\n\n" +
+      `■ 使用したRegex\n${filter}\n\n` +
+      "■ 抽出結果\n------------------------------\n" +
+      (out.length ? out.join("\n\n---\n\n") : "（一致なし）") +
+      "\n\n==============================\n" +
+      "  終了\n" +
+      "==============================\n";
+
+    updateCounters();
+    processTimeEl.textContent = `処理時間: ${(performance.now()-t0).toFixed(1)}ms`;
+    setStatus("完了", "ok");
+  }
+
+  // ===== UI utilities =====
+  function clearAll(){
+    inputEl.value = '';
+    outputEl.value = '';
+    regexEl.value = '';
+    thresholdEl.value = '7';
+    topNEl.value = '50';
+    huntModeEl.value = 'mixed';
+    processTimeEl.textContent = '';
+    hideError();
+    summaryEl.style.display = "none";
+    resetArtifacts();
+    setStatus("準備完了", "ready");
+    updateCounters();
+  }
+
+  function swapFields(){
+    const temp = inputEl.value;
+    inputEl.value = outputEl.value;
+    outputEl.value = temp;
+    hideError();
+    setStatus("準備完了", "ready");
+    updateCounters();
+  }
+
+  function copyOutput(){
+    const text = outputEl.value;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(()=>{
+      const btn = document.querySelector('.btn-copy');
+      btn.textContent = 'コピー完了 ✓';
+      btn.classList.add('copied');
+      setTimeout(()=>{
+        btn.textContent = 'コピー';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function downloadOutput(){
+    const text = outputEl.value || "";
+    const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const ts = new Date().toISOString().replace(/[:.]/g,'-');
+    a.href = url;
+    a.download = `ctf-log-report-${ts}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ===== File Drop =====
+  fileDropEl.addEventListener('click', () => fileInputEl.click());
+  fileDropEl.addEventListener('dragover', (e) => { e.preventDefault(); fileDropEl.classList.add('dragover'); });
+  fileDropEl.addEventListener('dragleave', () => { fileDropEl.classList.remove('dragover'); });
+  fileDropEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileDropEl.classList.remove('dragover');
+    handleFile(e.dataTransfer.files[0]);
+  });
+  fileInputEl.addEventListener('change', (e) => {
+    if (e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file){
+    if (!file) return;
+    setStatus("読み込み中...", "warn");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      inputEl.value = e.target.result;
+      updateCounters();
+      setStatus("準備完了", "ready");
+    };
+    reader.onerror = () => showError("ファイルの読み込みに失敗しました。");
+    reader.readAsText(file);
+  }
+
+  // ===== Keyboard shortcuts =====
+  inputEl.addEventListener('input', updateCounters);
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      hunt();
+    }
+  });
+
+  // ===== Typewriter subtitle =====
+  (function typewriterBoot(){
+    const sub = document.querySelector('.subtitle');
+    const text = sub.textContent.trim();
+    sub.textContent = '';
+    let i = 0;
+    const interval = setInterval(()=>{
+      sub.textContent += text[i];
+      i++;
+      if (i >= text.length) clearInterval(interval);
+    }, 40);
+  })();
+
+  // init
+  updateCounters();
+  setStatus("準備完了", "ready");
+</script>
+</body>
+</html>
