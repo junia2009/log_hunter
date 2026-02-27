@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CTF ログハンター（拡張検知）</title>
   <style>
+      .text-orange-45 { color: rgba(255,106,0,.45); }
+      .text-orange-35 { color: rgba(255,106,0,.35); }
+      .text-cyan-35 { color: rgba(0,212,255,.35); }
+      .text-cyan-25 { color: rgba(0,212,255,.25); }
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
     :root {
       --cyan: #00d4ff;
@@ -594,7 +598,7 @@
       <details class="help">
         <summary>
           <span>使い方（CTF向け：3ステップ）</span>
-          <span style="color:rgba(255,106,0,.45)">CLICK</span>
+          <span class="text-orange-45">CLICK</span>
         </summary>
         <div class="help-body">
           <div>1) ログを貼り付ける or ファイルをドロップ</div>
@@ -622,7 +626,7 @@
         <div class="ctrl">
           <div class="title">
             <span>絞り込み（任意）</span>
-            <span style="color:rgba(255,106,0,.35)">REGEX</span>
+            <span class="text-orange-35">REGEX</span>
           </div>
           <input id="regex" placeholder="例: ERROR | Failed password | flag\\{ | /wp-admin | \\.git" />
           <div class="hint">分からなければ空欄でOK（全体から自動抽出）</div>
@@ -631,9 +635,9 @@
         <div class="ctrl">
           <div class="title">
             <span>解析モード</span>
-            <span style="color:rgba(0,212,255,.35)">推奨: MIXED</span>
+            <span class="text-cyan-35">推奨: MIXED</span>
           </div>
-          <select id="huntMode">
+          <select id="huntMode" title="解析モード">
             <option value="mixed" selected>MIXED（Web + 認証 + アプリ）</option>
             <option value="web">WEB中心（アクセスログ優先）</option>
             <option value="auth">AUTH中心（ssh/sudo優先）</option>
@@ -644,9 +648,9 @@
         <div class="ctrl">
           <div class="title">
             <span>検知レベル</span>
-            <span style="color:rgba(0,212,255,.35)">スコア閾値</span>
+            <span class="text-cyan-35">スコア閾値</span>
           </div>
-          <select id="threshold">
+          <select id="threshold" title="検知レベル（スコア閾値）">
             <option value="12">LOW（かなり怪しいものだけ）</option>
             <option value="8" selected>MED（おすすめ）</option>
             <option value="6">HIGH（広く拾う）</option>
@@ -657,9 +661,9 @@
         <div class="ctrl">
           <div class="title">
             <span>表示件数</span>
-            <span style="color:rgba(0,212,255,.35)">TOP-N</span>
+            <span class="text-cyan-35">TOP-N</span>
           </div>
-          <select id="topN">
+          <select id="topN" title="表示件数（TOP-N）">
             <option value="30">上位30件</option>
             <option value="50" selected>上位50件</option>
             <option value="100">上位100件</option>
@@ -688,7 +692,7 @@
       <div class="artifacts" id="artifacts">
         <div class="title">
           <span>抽出されたファイル（Artifacts）</span>
-          <span style="color:rgba(0,212,255,.25)" id="artifactHint">0 件</span>
+          <span class="text-cyan-25" id="artifactHint">0 件</span>
         </div>
         <div class="artifact-buttons" id="artifactButtons"></div>
       </div>
